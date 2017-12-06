@@ -3,6 +3,8 @@ package im.shimo.react.cookie;
 
 import android.util.Log;
 import android.webkit.CookieSyncManager;
+import android.webkit.CookieManager;
+import android.os.Build;
 
 import com.facebook.react.bridge.Promise;
 import com.facebook.react.bridge.ReactApplicationContext;
@@ -31,6 +33,9 @@ public class CookieManagerModule extends ReactContextBaseJavaModule {
     private static final String DOMAIN_FIELD = "; Domain=";
     private static final String PATH_FIELD = "; Path=";
 
+    private CookieManager mCookieManager;
+    private static final boolean USES_LEGACY_STORE = Build.VERSION.SDK_INT < 21;
+
     private ForwardingCookieHandler mCookieHandler;
 
     public CookieManagerModule(ReactApplicationContext context) {
@@ -45,6 +50,7 @@ public class CookieManagerModule extends ReactContextBaseJavaModule {
     @ReactMethod
     public void setCookie(String url, String value, final Promise promise) throws URISyntaxException, IOException {
         setCookie(url, value);
+        persistCookies();
         promise.resolve(null);
     }
 
@@ -108,6 +114,26 @@ public class CookieManagerModule extends ReactContextBaseJavaModule {
 
             promise.resolve(null);
         }
+    }
+
+    public void persistCookies() {
+      if (USES_LEGACY_STORE) {
+        CookieSyncManager syncManager = CookieSyncManager.getInstance();
+        syncManager.sync();
+      } else {
+        flush();
+      }
+    }
+
+    private CookieManager getCookieManager() {
+      if (mCookieManager == null) {
+        mCookieManager = CookieManager.getInstance();
+      }
+      return mCookieManager;
+    }
+
+    private void flush() {
+      getCookieManager().flush();
     }
 
     private
